@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GymTracker</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">Gym<span>Tracker</span></a>
+        <div class="nav-links">
+            <% if (user) { %>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/workouts">Workouts</a>
+                <a href="/goals">Goals</a>
+                <% if (user.role === 'admin') { %>
+                    <a href="/admin/users" class="admin-link">Admin</a>
+                <% } %>
+                <a href="/logout" class="btn-logout">Logout</a>
+            <% } else { %>
+                <a href="/login">Login</a>
+                <a href="/register">Register</a>
+            <% } %>
+        </div>
+    </nav>
+
+    <main class="container">
+        <% if (success && success.length > 0) { %>
+            <div class="alert alert-success"><%= success %></div>
+        <% } %>
+        <% if (error && error.length > 0) { %>
+            <div class="alert alert-error"><%= error %></div>
+        <% } %>
