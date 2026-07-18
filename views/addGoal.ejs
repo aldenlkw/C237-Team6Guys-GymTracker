@@ -1,0 +1,31 @@
+<%- include('partials/header') %>
+
+<div class="form-card">
+    <h1>New Goal</h1>
+    <p class="form-sub">Pick an exercise and the weight you want to hit.</p>
+
+    <form action="/goals/add" method="POST">
+        <label for="exerciseId">Exercise</label>
+        <select id="exerciseId" name="exerciseId" required>
+            <option value="">-- Select an exercise --</option>
+            <% exercises.forEach(ex => { %>
+                <option value="<%= ex.exerciseId %>">
+                    <%= ex.exerciseName %> (<%= ex.muscleGroup %>)
+                </option>
+            <% }) %>
+        </select>
+
+        <label for="targetWeight">Target Weight (kg)</label>
+        <input type="number" id="targetWeight" name="targetWeight"
+               step="0.5" min="0.5" required>
+
+        <label for="targetDate">Target Date</label>
+        <input type="date" id="targetDate" name="targetDate" required>
+
+        <button type="submit" class="btn-primary">Create Goal</button>
+    </form>
+
+    <p class="form-footer"><a href="/goals">Cancel</a></p>
+</div>
+
+<%- include('partials/footer') %>

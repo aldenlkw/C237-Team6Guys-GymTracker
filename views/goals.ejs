@@ -1,0 +1,66 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+    <div>
+        <h1>My Goals</h1>
+        <p class="form-sub">Set a target lift and track your progress towards it.</p>
+    </div>
+    <a href="/goals/add" class="btn-sm btn-add">+ New Goal</a>
+</div>
+
+<% if (goals.length === 0) { %>
+    <div class="empty-state">
+        <p>No goals yet.</p>
+        <p class="form-sub">Set your first target and start chasing it.</p>
+    </div>
+<% } else { %>
+    <div class="goal-list">
+        <% goals.forEach(goal => { %>
+            <div class="goal-card <%= goal.status === 'achieved' ? 'is-achieved' : '' %>">
+
+                <div class="goal-top">
+                    <div>
+                        <h3><%= goal.exerciseName %></h3>
+                        <span class="muscle-tag"><%= goal.muscleGroup %></span>
+                    </div>
+                    <% if (goal.status === 'achieved') { %>
+                        <span class="badge badge-achieved">Achieved</span>
+                    <% } else if (goal.overdue) { %>
+                        <span class="badge badge-overdue">Overdue</span>
+                    <% } else { %>
+                        <span class="badge badge-active"><%= goal.daysLeft %> days left</span>
+                    <% } %>
+                </div>
+
+                <div class="goal-numbers">
+                    <span>Best: <strong><%= goal.bestWeight %> kg</strong></span>
+                    <span>Target: <strong><%= goal.targetWeight %> kg</strong></span>
+                    <% if (goal.status === 'active') { %>
+                        <span><%= goal.remaining %> kg to go</span>
+                    <% } %>
+                </div>
+
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: <%= goal.percent %>%"></div>
+                </div>
+                <div class="progress-label"><%= goal.percent %>%</div>
+
+                <div class="goal-foot">
+                    <span class="form-sub">
+                        Target date: <%= new Date(goal.targetDate).toLocaleDateString('en-GB') %>
+                    </span>
+                    <div class="goal-actions">
+                        <a href="/goals/edit/<%= goal.goalId %>" class="btn-sm btn-edit">Edit</a>
+                        <form action="/goals/delete/<%= goal.goalId %>" method="POST"
+                              onsubmit="return confirm('Delete this goal?');">
+                            <button type="submit" class="btn-sm btn-delete">Delete</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        <% }) %>
+    </div>
+<% } %>
+
+<%- include('partials/footer') %>

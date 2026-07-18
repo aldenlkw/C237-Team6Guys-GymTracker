@@ -48,13 +48,13 @@ app.use((req, res, next) => {
 // ---------- Route files ----------
 // const authRoutes = require('./routes/auth');           // Fahmy
 // const workoutRoutes = require('./routes/workouts');    // Kaijet + Sid
-// const goalRoutes = require('./routes/goals');          // Alden
+const goalRoutes = require('./routes/goals');          // Alden
 // const dashboardRoutes = require('./routes/dashboard'); // Vince
 // const adminRoutes = require('./routes/admin');         // Zarick
 
 // app.use('/', authRoutes);                              // Fahmy
 // app.use('/workouts', workoutRoutes);                   // Kaijet + Sid
-// app.use('/goals', goalRoutes);                         // Alden
+app.use('/goals', goalRoutes);                         // Alden
 // app.use('/dashboard', dashboardRoutes);                // Vince
 // app.use('/admin', adminRoutes);                        // Zarick
 

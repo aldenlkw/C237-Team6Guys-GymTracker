@@ -1,0 +1,32 @@
+<%- include('partials/header') %>
+
+<div class="form-card">
+    <h1>Edit Goal</h1>
+    <p class="form-sub">Adjust your target if your training plan changed.</p>
+
+    <form action="/goals/edit/<%= goal.goalId %>" method="POST">
+        <label for="exerciseId">Exercise</label>
+        <select id="exerciseId" name="exerciseId" required>
+            <% exercises.forEach(ex => { %>
+                <option value="<%= ex.exerciseId %>"
+                    <%= ex.exerciseId === goal.exerciseId ? 'selected' : '' %>>
+                    <%= ex.exerciseName %> (<%= ex.muscleGroup %>)
+                </option>
+            <% }) %>
+        </select>
+
+        <label for="targetWeight">Target Weight (kg)</label>
+        <input type="number" id="targetWeight" name="targetWeight"
+               step="0.5" min="0.5" value="<%= goal.targetWeight %>" required>
+
+        <label for="targetDate">Target Date</label>
+        <input type="date" id="targetDate" name="targetDate"
+               value="<%= goal.targetDateInput %>" required>
+
+        <button type="submit" class="btn-primary">Save Changes</button>
+    </form>
+
+    <p class="form-footer"><a href="/goals">Cancel</a></p>
+</div>
+
+<%- include('partials/footer') %>
