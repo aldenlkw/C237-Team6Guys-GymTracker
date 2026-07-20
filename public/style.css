@@ -386,6 +386,30 @@ tbody tr:hover td { background: var(--surface-hi); }
     letter-spacing: .3px;
 }
 
+/* ---------- Dashboard enhancements ---------- */
+.inline-form { display: inline; }
+.filter-bar { margin-bottom: 20px; }
+.filter-bar .btn-add { margin-top: 0; }
+.insight-list { display: grid; gap: 10px; margin: 18px 0 24px; }
+.insight-item {
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+.badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+.badge-success { background: var(--success-bg); color: #9df3d0; }
+.chart-card { min-height: 260px; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 600px) {
     .container { padding: 24px 18px; }

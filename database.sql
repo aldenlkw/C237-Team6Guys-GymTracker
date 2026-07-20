@@ -24,6 +24,7 @@ CREATE TABLE workouts (
   weight DECIMAL(6,2) NOT NULL,
   reps INT NOT NULL,
   sets INT NOT NULL,
+  durationMinutes INT DEFAULT NULL,
   workoutDate DATE NOT NULL,
   notes VARCHAR(255),
   FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE,
