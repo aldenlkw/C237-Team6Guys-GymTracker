@@ -8,29 +8,90 @@ router.use(checkAuthenticated);
 
 // Flip active goals to "achieved" when the user's best lift reaches the target.
 const refreshAchievedGoals = async (userId) => {
-    const sql = `
+    // Promote to achieved when best lift reaches target
+    await db.query(`
         UPDATE goals g
         JOIN (
             SELECT exerciseId, MAX(weight) AS bestWeight
-            FROM workouts
-            WHERE userId = ?
+            FROM workouts WHERE userId = ?
             GROUP BY exerciseId
         ) AS best ON best.exerciseId = g.exerciseId
         SET g.status = 'achieved'
-        WHERE g.userId = ?
-          AND g.status = 'active'
-          AND best.bestWeight >= g.targetWeight`;
-    await db.query(sql, [userId, userId]);
+        WHERE g.userId = ? AND g.status = 'active'
+          AND best.bestWeight >= g.targetWeight`,
+        [userId, userId]);
+
+    // Demote back to active if best lift no longer meets target
+    // (covers deleted workouts, or no workouts at all)
+    await db.query(`
+        UPDATE goals g
+        LEFT JOIN (
+            SELECT exerciseId, MAX(weight) AS bestWeight
+            FROM workouts WHERE userId = ?
+            GROUP BY exerciseId
+        ) AS best ON best.exerciseId = g.exerciseId
+        SET g.status = 'active'
+        WHERE g.userId = ? AND g.status = 'achieved'
+          AND (best.bestWeight IS NULL OR best.bestWeight < g.targetWeight)`,
+        [userId, userId]);
 };
 
-// GET /goals - list this user's goals with progress
+// ENHANCEMENT: project whether the user will hit a goal by its deadline,
+// based on their rate of improvement for that exercise.
+const buildProjection = (history, target, targetDate) => {
+    // Need at least 2 logged lifts to measure a rate of change.
+    if (!history || history.length < 2) {
+        return { status: 'insufficient', message: 'Log more workouts to see a projection.' };
+    }
+
+    const first = history[0];   // earliest lift
+    const last = history[history.length - 1];  // latest lift
+    const best = Math.max(...history.map(h => parseFloat(h.weight)));
+
+    // Already there.
+    if (best >= target) {
+        return { status: 'achieved', message: 'Target already reached.' };
+    }
+
+    const startWeight = parseFloat(first.weight);
+    const latestWeight = parseFloat(last.weight);
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysBetween = (new Date(last.workoutDate) - new Date(first.workoutDate)) / msPerDay;
+
+    // No time span or no gain = can't project forward.
+    if (daysBetween <= 0 || latestWeight <= startWeight) {
+        return { status: 'stalled', message: 'Not improving at your current pace. Lift heavier to stay on track.' };
+    }
+
+    const kgPerDay = (latestWeight - startWeight) / daysBetween;
+    const kgRemaining = target - latestWeight;
+    const daysNeeded = Math.ceil(kgRemaining / kgPerDay);
+
+    const projectedDate = new Date(last.workoutDate);
+    projectedDate.setDate(projectedDate.getDate() + daysNeeded);
+
+    const deadline = new Date(targetDate);
+    const onTrack = projectedDate <= deadline;
+    const kgPerWeek = (kgPerDay * 7).toFixed(1);
+
+    return {
+        status: onTrack ? 'onTrack' : 'behind',
+        kgPerWeek: kgPerWeek,
+        projectedDate: projectedDate.toLocaleDateString('en-GB'),
+        message: onTrack
+            ? `At ${kgPerWeek} kg/week, you'll hit this around ${projectedDate.toLocaleDateString('en-GB')} — on track.`
+            : `At ${kgPerWeek} kg/week, you'd reach it around ${projectedDate.toLocaleDateString('en-GB')} — after your deadline. Pick up the pace.`
+    };
+};
+
+// GET /goals - list goals with progress AND projection
 router.get('/', async (req, res) => {
     const userId = req.session.user.userId;
     try {
         await refreshAchievedGoals(userId);
 
         const sql = `
-            SELECT g.goalId, g.targetWeight, g.targetDate, g.status,
+            SELECT g.goalId, g.exerciseId, g.targetWeight, g.targetDate, g.status,
                    e.exerciseName, e.muscleGroup,
                    best.bestWeight
             FROM goals g
@@ -47,21 +108,37 @@ router.get('/', async (req, res) => {
         const [goals] = await db.query(sql, [userId, userId]);
 
         const today = new Date();
-        const goalsWithProgress = goals.map(goal => {
+
+        // For each goal, fetch that exercise's lift history and build a projection.
+        const goalsWithProgress = await Promise.all(goals.map(async (goal) => {
             const best = goal.bestWeight ? parseFloat(goal.bestWeight) : 0;
             const target = parseFloat(goal.targetWeight);
             const percent = Math.min(Math.round((best / target) * 100), 100);
             const msPerDay = 1000 * 60 * 60 * 24;
             const daysLeft = Math.ceil((new Date(goal.targetDate) - today) / msPerDay);
+
+            // Pull this user's lift history for this exercise, oldest first.
+            const [history] = await db.query(
+                `SELECT weight, workoutDate FROM workouts
+                 WHERE userId = ? AND exerciseId = ?
+                 ORDER BY workoutDate ASC`,
+                [userId, goal.exerciseId]
+            );
+
+            const projection = goal.status === 'achieved'
+                ? { status: 'achieved', message: 'Goal achieved!' }
+                : buildProjection(history, target, goal.targetDate);
+
             return {
                 ...goal,
                 bestWeight: best,
                 percent: percent,
                 remaining: Math.max(target - best, 0).toFixed(2),
                 daysLeft: daysLeft,
-                overdue: daysLeft < 0 && goal.status === 'active'
+                overdue: daysLeft < 0 && goal.status === 'active',
+                projection: projection
             };
-        });
+        }));
 
         res.render('goals', { goals: goalsWithProgress });
     } catch (err) {
@@ -71,7 +148,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET /goals/add - show the create form
+// GET /goals/add
 router.get('/add', async (req, res) => {
     try {
         const [exercises] = await db.query(
@@ -85,7 +162,7 @@ router.get('/add', async (req, res) => {
     }
 });
 
-// POST /goals/add - create a goal
+// POST /goals/add
 router.post('/add', async (req, res) => {
     const { exerciseId, targetWeight, targetDate } = req.body;
     const userId = req.session.user.userId;
@@ -100,17 +177,20 @@ router.post('/add', async (req, res) => {
     }
 
     try {
-        const dupSql = `SELECT goalId FROM goals
-                        WHERE userId = ? AND exerciseId = ? AND status = 'active'`;
-        const [existing] = await db.query(dupSql, [userId, exerciseId]);
+        const [existing] = await db.query(
+            `SELECT goalId FROM goals WHERE userId = ? AND exerciseId = ? AND status = 'active'`,
+            [userId, exerciseId]
+        );
         if (existing.length > 0) {
             req.flash('error', 'You already have an active goal for that exercise.');
             return res.redirect('/goals');
         }
 
-        const sql = `INSERT INTO goals (userId, exerciseId, targetWeight, targetDate, status)
-                     VALUES (?, ?, ?, ?, 'active')`;
-        await db.query(sql, [userId, exerciseId, targetWeight, targetDate]);
+        await db.query(
+            `INSERT INTO goals (userId, exerciseId, targetWeight, targetDate, status)
+             VALUES (?, ?, ?, ?, 'active')`,
+            [userId, exerciseId, targetWeight, targetDate]
+        );
         req.flash('success', 'Goal created.');
         res.redirect('/goals');
     } catch (err) {
@@ -120,7 +200,7 @@ router.post('/add', async (req, res) => {
     }
 });
 
-// GET /goals/edit/:id - show the edit form
+// GET /goals/edit/:id
 router.get('/edit/:id', async (req, res) => {
     const userId = req.session.user.userId;
     try {
@@ -147,7 +227,7 @@ router.get('/edit/:id', async (req, res) => {
     }
 });
 
-// POST /goals/edit/:id - update a goal
+// POST /goals/edit/:id
 router.post('/edit/:id', async (req, res) => {
     const { exerciseId, targetWeight, targetDate } = req.body;
     const userId = req.session.user.userId;
@@ -162,11 +242,10 @@ router.post('/edit/:id', async (req, res) => {
     }
 
     try {
-        const sql = `UPDATE goals
-                     SET exerciseId = ?, targetWeight = ?, targetDate = ?, status = 'active'
-                     WHERE goalId = ? AND userId = ?`;
         const [result] = await db.query(
-            sql, [exerciseId, targetWeight, targetDate, req.params.id, userId]
+            `UPDATE goals SET exerciseId = ?, targetWeight = ?, targetDate = ?, status = 'active'
+             WHERE goalId = ? AND userId = ?`,
+            [exerciseId, targetWeight, targetDate, req.params.id, userId]
         );
         if (result.affectedRows === 0) {
             req.flash('error', 'Goal not found.');
@@ -181,7 +260,7 @@ router.post('/edit/:id', async (req, res) => {
     }
 });
 
-// POST /goals/delete/:id - delete a goal
+// POST /goals/delete/:id
 router.post('/delete/:id', async (req, res) => {
     const userId = req.session.user.userId;
     try {

@@ -18,7 +18,9 @@
                 <% if (user.role === 'admin') { %>
                     <a href="/admin/users" class="admin-link">Admin</a>
                 <% } %>
-                <a href="/logout" class="btn-logout">Logout</a>
+                <form action="/logout" method="POST" style="display:inline;">
+    <button type="submit" class="btn-logout" style="background:none;border:1px solid var(--border-hi);cursor:pointer;font:inherit;">Logout</button>
+</form>
             <% } else { %>
                 <a href="/login">Login</a>
                 <a href="/register">Register</a>

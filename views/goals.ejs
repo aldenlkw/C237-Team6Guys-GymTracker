@@ -45,6 +45,11 @@
                 </div>
                 <div class="progress-label"><%= goal.percent %>%</div>
 
+                <% if (goal.status === 'active' && goal.projection) { %>
+                    <p class="projection projection-<%= goal.projection.status %>">
+                        📈 <%= goal.projection.message %>
+                    </p>
+                <% } %>
                 <div class="goal-foot">
                     <span class="form-sub">
                         Target date: <%= new Date(goal.targetDate).toLocaleDateString('en-GB') %>

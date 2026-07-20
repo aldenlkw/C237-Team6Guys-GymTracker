@@ -140,3 +140,15 @@ tbody tr:hover td { background: var(--surface-hi); }
     .container { padding: 24px 18px; }
     .page-head { flex-direction: column; align-items: flex-start; }
 }
+
+.projection {
+    margin-top: 12px;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    line-height: 1.4;
+}
+.projection-onTrack { background: rgba(52,211,153,.1); color: #9be0b9; border: 1px solid var(--success); }
+.projection-behind { background: rgba(245,166,35,.1); color: var(--accent); border: 1px solid var(--accent); }
+.projection-stalled { background: rgba(248,113,113,.1); color: #ffabb7; border: 1px solid var(--danger); }
+.projection-insufficient { background: var(--surface-hi); color: var(--muted); border: 1px solid var(--border); }
