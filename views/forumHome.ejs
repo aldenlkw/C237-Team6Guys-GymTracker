@@ -1,140 +1,62 @@
-<!DOCTYPE html>
+<%- include('partials/header') %>
 
-<html lang="en">
+<div class="page-head">
+    <div>
+        <h1>Community Forum</h1>
+        <p class="form-sub">Ask questions, share advice and help other gym members.</p>
+    </div>
+    <a href="/forum/create" class="btn-sm btn-add">+ New Question</a>
+</div>
 
-<head>
-
-    <meta charset="UTF-8">
-
-    <title>Gym Forum</title>
-
-    <link rel="stylesheet" href="/forum.css">
-
-</head>
-
-<body>
-
-    <h1>🏋️ Gym Community Forum</h1>
-
-    <p>
-
-        Ask questions, share advice and help other gym members.
-
-    </p>
-
-    <hr>
-
-    <!-- ======================
-         Search & Filter
-    ======================= -->
-
-    <form action="/forum" method="GET">
-
-        <input
-            type="text"
-            name="search"
-            placeholder="Search questions...">
-
-        <select name="category">
-
+<form action="/forum" method="GET" class="filter-bar">
+    <div>
+        <label for="search">Search</label>
+        <input type="text" id="search" name="search" placeholder="Search questions...">
+    </div>
+    <div>
+        <label for="category">Category</label>
+        <select id="category" name="category">
             <option value="">All Categories</option>
-
             <option value="Strength">Strength</option>
-
             <option value="Nutrition">Nutrition</option>
-
             <option value="Weight Loss">Weight Loss</option>
-
             <option value="Supplements">Supplements</option>
-
             <option value="Injuries">Injuries</option>
-
         </select>
+    </div>
+    <div style="flex: 0;">
+        <label>&nbsp;</label>
+        <button type="submit" class="btn-sm btn-edit">Search</button>
+    </div>
+</form>
 
-        <button type="submit">
+<% if (posts.length === 0) { %>
+    <div class="empty-state">
+        <p>No questions yet.</p>
+        <p class="form-sub">Be the first to start a discussion.</p>
+    </div>
+<% } else { %>
+    <div class="goal-list">
+        <% posts.forEach(post => { %>
+            <div class="goal-card">
+                <div class="goal-top">
+                    <div>
+                        <h3><%= post.title %></h3>
+                        <% if (post.category) { %>
+                            <span class="muscle-tag"><%= post.category %></span>
+                        <% } %>
+                    </div>
+                </div>
+                <p class="form-sub" style="margin: 12px 0;">
+                    <%= post.question.substring(0, 150) %><%= post.question.length > 150 ? '...' : '' %>
+                </p>
+                <div class="goal-foot">
+                    <span class="form-sub">Posted by <strong><%= post.username %></strong></span>
+                    <a href="/forum/post/<%= post.id %>" class="btn-sm btn-edit">View Discussion</a>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+<% } %>
 
-            Search
-
-        </button>
-
-    </form>
-
-    <br>
-
-    <a href="/forum/create">
-
-        <button>
-
-            + Create New Question
-
-        </button>
-
-    </a>
-
-    <hr>
-
-    <!-- ======================
-         Forum Posts
-    ======================= -->
-
-    <% if(posts.length === 0){ %>
-
-        <h3>
-
-            No questions have been posted yet.
-
-        </h3>
-
-    <% } %>
-
-    <% posts.forEach(post=>{ %>
-
-        <div class="postCard">
-
-            <h2>
-
-                <%= post.title %>
-
-            </h2>
-
-            <p>
-
-                <%= post.question.substring(0,150) %>...
-
-            </p>
-
-            <p>
-
-                <strong>Category:</strong>
-
-                <%= post.category %>
-
-            </p>
-
-            <p>
-
-                Posted by
-
-                <%= post.username %>
-
-            </p>
-
-            <a href="/forum/post/<%= post.id %>">
-
-                <button>
-
-                    View Discussion
-
-                </button>
-
-            </a>
-
-        </div>
-
-        <hr>
-
-    <% }) %>
-
-</body>
-
-</html>
+<%- include('partials/footer') %>

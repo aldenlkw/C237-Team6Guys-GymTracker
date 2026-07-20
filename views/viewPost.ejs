@@ -1,177 +1,62 @@
-<!DOCTYPE html>
+<%- include('partials/header') %>
 
-<html lang="en">
+<p><a href="/forum" style="color: var(--accent);">← Back to Forum</a></p>
 
-<head>
-
-    <meta charset="UTF-8">
-
-    <title><%= post.title %></title>
-
-    <link rel="stylesheet" href="/forum.css">
-
-</head>
-
-<body>
-
-    <a href="/forum">← Back to Forum</a>
-
-    <hr>
-
-    <!-- ===========================
-         QUESTION
-    ============================ -->
-
-    <h1><%= post.title %></h1>
-
-    <p>
-
-        <strong>Posted by:</strong>
-
-        <%= post.username %>
-
-    </p>
-
-    <p>
-
-        <strong>Category:</strong>
-
-        <%= post.category %>
-
-    </p>
-
-    <p>
-
-        <strong>Date:</strong>
-
-        <%= post.created_at %>
-
-    </p>
-
-    <hr>
-
-    <p>
-
-        <%= post.question %>
-
-    </p>
-
-    <hr>
-
-    <!-- ===========================
-         EDIT / DELETE
-    ============================ -->
-
-    <% if(currentUser && currentUser.id === post.user_id){ %>
-
-        <a href="/forum/edit/<%= post.id %>">
-
-            <button>Edit Post</button>
-
-        </a>
-
-        <form
-            action="/forum/delete/<%= post.id %>"
-            method="POST"
-            style="display:inline;">
-
-            <button
-                type="submit"
-                onclick="return confirm('Delete this post?')">
-
-                Delete Post
-
-            </button>
-
-        </form>
-
-    <% } %>
-
-    <hr>
-
-    <!-- ===========================
-         REPLIES
-    ============================ -->
-
-    <h2>Replies</h2>
-
-    <% if(replies.length === 0){ %>
-
-        <p>
-
-            No replies yet.
-            Be the first to answer!
-
-        </p>
-
-    <% } %>
-
-    <% replies.forEach(reply=>{ %>
-
-        <div class="replyCard">
-
-            <p>
-
-                <strong><%= reply.username %></strong>
-
-            </p>
-
-            <p>
-
-                <%= reply.reply %>
-
-            </p>
-
-            <p>
-
-                <small>
-
-                    <%= reply.created_at %>
-
-                </small>
-
-            </p>
-
-            <hr>
-
+<div class="goal-card" style="margin-top: 16px;">
+    <div class="goal-top">
+        <div>
+            <h3><%= post.title %></h3>
+            <% if (post.category) { %>
+                <span class="muscle-tag"><%= post.category %></span>
+            <% } %>
         </div>
+        <% if (currentUser && currentUser.id === post.user_id) { %>
+            <div class="goal-actions">
+                <a href="/forum/edit/<%= post.id %>" class="btn-sm btn-edit">Edit</a>
+                <form action="/forum/delete/<%= post.id %>" method="POST"
+                      onsubmit="return confirm('Delete this post?');">
+                    <button type="submit" class="btn-sm btn-delete">Delete</button>
+                </form>
+            </div>
+        <% } %>
+    </div>
 
-    <% }) %>
+    <div class="goal-numbers">
+        <span>By <strong><%= post.username %></strong></span>
+        <span><%= new Date(post.created_at).toLocaleDateString('en-GB') %></span>
+    </div>
 
-    <!-- ===========================
-         ADD REPLY
-    ============================ -->
+    <p style="margin-top: 16px; line-height: 1.6;"><%= post.question %></p>
+</div>
 
-    <h2>Post a Reply</h2>
+<h2 style="margin: 28px 0 12px;">Replies</h2>
 
-    <form
-        action="/forum/reply/<%= post.id %>"
-        method="POST">
+<% if (replies.length === 0) { %>
+    <div class="empty-state">
+        <p>No replies yet.</p>
+        <p class="form-sub">Be the first to answer.</p>
+    </div>
+<% } else { %>
+    <div class="goal-list">
+        <% replies.forEach(reply => { %>
+            <div class="goal-card">
+                <div class="goal-numbers">
+                    <span><strong><%= reply.username %></strong></span>
+                    <span><%= new Date(reply.created_at).toLocaleDateString('en-GB') %></span>
+                </div>
+                <p style="margin-top: 10px; line-height: 1.6;"><%= reply.reply %></p>
+            </div>
+        <% }) %>
+    </div>
+<% } %>
 
-        <textarea
-
-            name="reply"
-
-            rows="5"
-
-            cols="70"
-
-            placeholder="Write your reply..."
-
-            required>
-
-        </textarea>
-
-        <br><br>
-
-        <button type="submit">
-
-            Submit Reply
-
-        </button>
-
+<div class="form-card" style="max-width: 100%; margin-top: 24px;">
+    <h1 style="font-size: 20px;">Post a Reply</h1>
+    <form action="/forum/reply/<%= post.id %>" method="POST">
+        <label for="reply">Your Reply</label>
+        <textarea id="reply" name="reply" rows="4" placeholder="Write your reply..." required></textarea>
+        <button type="submit" class="btn-primary">Submit Reply</button>
     </form>
+</div>
 
-</body>
-
-</html>
+<%- include('partials/footer') %>

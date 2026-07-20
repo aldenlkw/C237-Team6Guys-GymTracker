@@ -1,301 +1,182 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
+const db = require('../dbConfig');
 
-const db = require("../dbConfig");
+const checkAuth = (req, res, next) => {
+    if (!req.session.user) return res.redirect('/login');
+    next();
+};
 
-module.exports = router;
+router.use(checkAuth);
 
-router.get("/", (req, res) => {
+// ==============================
+// FORUM HOME - list posts (with search + category filter)
+// ==============================
+router.get('/', async (req, res) => {
+    const search = req.query.search || '';
+    const category = req.query.category || '';
 
-    const search = req.query.search || "";
-    const category = req.query.category || "";
+    let sql = 'SELECT * FROM forum_posts WHERE title LIKE ?';
+    const values = ['%' + search + '%'];
 
-    let sql = `
-        SELECT *
-        FROM forum_posts
-        WHERE title LIKE ?
-    `;
-
-    let values = [`%${search}%`];
-
-    if (category !== "") {
-
-        sql += " AND category = ?";
+    if (category !== '') {
+        sql += ' AND category = ?';
         values.push(category);
+    }
+    sql += ' ORDER BY created_at DESC';
 
+    try {
+        const [posts] = await db.query(sql, values);
+        res.render('forumHome', { posts });
+    } catch (err) {
+        console.error('Forum home error:', err);
+        res.status(500).send('Database Error');
+    }
+});
+
+// ==============================
+// SHOW CREATE POST FORM
+// ==============================
+router.get('/create', (req, res) => {
+    res.render('createPost');
+});
+
+// ==============================
+// CREATE NEW POST
+// ==============================
+router.post('/create', async (req, res) => {
+    const { title, category, question } = req.body;
+    const user_id = req.session.user.userId;
+    const username = req.session.user.username;
+
+    if (!title || !question) {
+        return res.redirect('/forum/create');
     }
 
-    sql += " ORDER BY created_at DESC";
-
-    db.query(sql, values, (err, results) => {
-
-        if (err) {
-
-            console.log(err);
-            return res.send("Database Error");
-
-        }
-
-        res.render("forumHome", {
-
-            posts: results
-
-        });
-
-    });
-
-});
-
-router.get("/create", (req, res) => {
-
-    res.render("createPost");
-
+    try {
+        await db.query(
+            'INSERT INTO forum_posts (user_id, username, title, category, question) VALUES (?, ?, ?, ?, ?)',
+            [user_id, username, title, category || null, question]
+        );
+        res.redirect('/forum');
+    } catch (err) {
+        console.error('Create post error:', err);
+        res.status(500).send('Error creating forum post.');
+    }
 });
 
 // ==============================
-// CREATE NEW FORUM POST
+// VIEW A SINGLE POST + REPLIES
 // ==============================
-
-router.post("/create", (req, res) => {
-
-    const { title, category, question } = req.body;
-
-    // Temporary values for testing
-    // Replace these with req.session.user during integration
-    const user_id = 1;
-    const username = "TestUser";
-
-    const sql = `
-        INSERT INTO forum_posts
-        (user_id, username, title, category, question)
-        VALUES (?, ?, ?, ?, ?)
-    `;
-
-    db.query(
-        sql,
-        [user_id, username, title, category, question],
-        (err, result) => {
-
-            if (err) {
-                console.log(err);
-                return res.send("Error creating forum post.");
-            }
-
-            res.redirect("/forum");
-
-        }
-    );
-
-});
-
-// ==============================
-// VIEW A SINGLE FORUM POST
-// ==============================
-
-router.get("/post/:id", (req, res) => {
-
+router.get('/post/:id', async (req, res) => {
     const postId = req.params.id;
+    try {
+        const [postResult] = await db.query('SELECT * FROM forum_posts WHERE id = ?', [postId]);
+        if (postResult.length === 0) return res.send('Forum post not found.');
 
-    // Get the selected post
-    const postSql = `
-        SELECT *
-        FROM forum_posts
-        WHERE id = ?
-    `;
+        const [replies] = await db.query(
+            'SELECT * FROM forum_replies WHERE post_id = ? ORDER BY created_at ASC',
+            [postId]
+        );
 
-    db.query(postSql, [postId], (err, postResult) => {
-
-        if (err) {
-
-            console.log(err);
-            return res.send("Database Error");
-
-        }
-
-        if (postResult.length === 0) {
-
-            return res.send("Forum post not found.");
-
-        }
-
-        // Get all replies for this post
-        const replySql = `
-            SELECT *
-            FROM forum_replies
-            WHERE post_id = ?
-            ORDER BY created_at ASC
-        `;
-
-        db.query(replySql, [postId], (err, replyResults) => {
-
-            if (err) {
-
-                console.log(err);
-                return res.send("Database Error");
-
+        res.render('viewPost', {
+            post: postResult[0],
+            replies,
+            currentUser: {
+                id: req.session.user.userId,
+                username: req.session.user.username
             }
-
-            res.render("viewPost", {
-
-                post: postResult[0],
-                replies: replyResults,
-
-                // Temporary user for testing
-                currentUser: {
-                    id: 1,
-                    username: "TestUser"
-                }
-
-            });
-
         });
-
-    });
-
+    } catch (err) {
+        console.error('View post error:', err);
+        res.status(500).send('Database Error');
+    }
 });
 
 // ==============================
-// ADD REPLY TO A POST
+// ADD REPLY
 // ==============================
-
-router.post("/reply/:id", (req, res) => {
-
+router.post('/reply/:id', async (req, res) => {
     const postId = req.params.id;
-
     const { reply } = req.body;
+    const user_id = req.session.user.userId;
+    const username = req.session.user.username;
 
-    // Temporary user for testing
-    // Replace with req.session.user during integration
-    const user_id = 1;
-    const username = "TestUser";
+    if (!reply) return res.redirect('/forum/post/' + postId);
 
-    const sql = `
-        INSERT INTO forum_replies
-        (post_id, user_id, username, reply)
-        VALUES (?, ?, ?, ?)
-    `;
-
-    db.query(
-        sql,
-        [postId, user_id, username, reply],
-        (err, result) => {
-
-            if (err) {
-
-                console.log(err);
-                return res.send("Error adding reply.");
-
-            }
-
-            res.redirect("/forum/post/" + postId);
-
-        }
-    );
-
+    try {
+        await db.query(
+            'INSERT INTO forum_replies (post_id, user_id, username, reply) VALUES (?, ?, ?, ?)',
+            [postId, user_id, username, reply]
+        );
+        res.redirect('/forum/post/' + postId);
+    } catch (err) {
+        console.error('Reply error:', err);
+        res.status(500).send('Error adding reply.');
+    }
 });
 
 // ==============================
-// SHOW EDIT POST PAGE
+// SHOW EDIT FORM (owner only)
 // ==============================
-
-router.get("/edit/:id", (req, res) => {
-
+router.get('/edit/:id', async (req, res) => {
     const postId = req.params.id;
+    try {
+        const [results] = await db.query('SELECT * FROM forum_posts WHERE id = ?', [postId]);
+        if (results.length === 0) return res.send('Forum post not found.');
 
-    const sql = `
-        SELECT *
-        FROM forum_posts
-        WHERE id = ?
-    `;
-
-    db.query(sql, [postId], (err, results) => {
-
-        if (err) {
-
-            console.log(err);
-            return res.send("Database Error");
-
+        if (results[0].user_id !== req.session.user.userId) {
+            return res.status(403).send('You can only edit your own posts.');
         }
 
-        if (results.length === 0) {
-
-            return res.send("Forum post not found.");
-
-        }
-
-        res.render("editPost", {
-
-            post: results[0]
-
-        });
-
-    });
-
+        res.render('editPost', { post: results[0] });
+    } catch (err) {
+        console.error('Edit form error:', err);
+        res.status(500).send('Database Error');
+    }
 });
 
-
 // ==============================
-// UPDATE A FORUM POST
+// UPDATE POST (owner only)
 // ==============================
-
-router.post("/edit/:id", (req, res) => {
-
+router.post('/edit/:id', async (req, res) => {
     const postId = req.params.id;
-
     const { title, category, question } = req.body;
 
-    const sql = `
-        UPDATE forum_posts
-        SET
-            title = ?,
-            category = ?,
-            question = ?
-        WHERE id = ?
-    `;
-
-    db.query(
-        sql,
-        [title, category, question, postId],
-        (err, result) => {
-
-            if (err) {
-
-                console.log(err);
-                return res.send("Error updating post.");
-
-            }
-
-            res.redirect("/forum/post/" + postId);
-
+    try {
+        const [check] = await db.query('SELECT user_id FROM forum_posts WHERE id = ?', [postId]);
+        if (check.length === 0 || check[0].user_id !== req.session.user.userId) {
+            return res.status(403).send('You can only edit your own posts.');
         }
-    );
 
+        await db.query(
+            'UPDATE forum_posts SET title = ?, category = ?, question = ? WHERE id = ?',
+            [title, category || null, question, postId]
+        );
+        res.redirect('/forum/post/' + postId);
+    } catch (err) {
+        console.error('Update post error:', err);
+        res.status(500).send('Error updating post.');
+    }
 });
 
 // ==============================
-// DELETE A FORUM POST
+// DELETE POST (owner only)
 // ==============================
-
-router.post("/delete/:id", (req, res) => {
-
+router.post('/delete/:id', async (req, res) => {
     const postId = req.params.id;
-
-    const sql = `
-        DELETE FROM forum_posts
-        WHERE id = ?
-    `;
-
-    db.query(sql, [postId], (err, result) => {
-
-        if (err) {
-
-            console.log(err);
-            return res.send("Error deleting forum post.");
-
+    try {
+        const [check] = await db.query('SELECT user_id FROM forum_posts WHERE id = ?', [postId]);
+        if (check.length === 0 || check[0].user_id !== req.session.user.userId) {
+            return res.status(403).send('You can only delete your own posts.');
         }
 
-        res.redirect("/forum");
-
-    });
-
+        await db.query('DELETE FROM forum_posts WHERE id = ?', [postId]);
+        res.redirect('/forum');
+    } catch (err) {
+        console.error('Delete post error:', err);
+        res.status(500).send('Error deleting forum post.');
+    }
 });
+
+module.exports = router;
