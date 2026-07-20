@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout History</title>
+
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+
+    <h1>Workout History</h1>
+
+    <!-- ===========================
+         SEARCH / FILTER / SORT FORM
+    ============================ -->
+
+    <form action="/workouts" method="GET">
+
+        <!-- Search -->
+
+        <input
+        id="search"
+            type="text"
+            name="search"
+            placeholder="Search exercise..."
+            value="<%= typeof search !== 'undefined' ? search : '' %>">
+
+        <!-- Filter -->
+
+        <select 
+        id="muscle"
+        name="muscle">
+
+            <option value="">All Muscle Groups</option>
+
+            <option value="Chest">Chest</option>
+            <option value="Back">Back</option>
+            <option value="Legs">Legs</option>
+            <option value="Shoulders">Shoulders</option>
+            <option value="Arms">Arms</option>
+
+        </select>
+
+        <!-- Sort -->
+
+        <select 
+        id="sort"
+        name="sort">
+
+            <option value="">Sort By</option>
+
+            <option value="newest">Newest</option>
+
+            <option value="oldest">Oldest</option>
+
+            <option value="highest">Highest Weight</option>
+
+            <option value="lowest">Lowest Weight</option>
+
+        </select>
+
+        <button type="submit">
+
+    🔍 Search
+
+       </button>
+       
+       <a href="/workouts">
+
+    <button type="button">
+
+        Reset
+
+    </button>
+
+</a>
+
+    </form>
+
+    <br>
+
+    <!-- ===========================
+           WORKOUT TABLE
+    ============================ -->
+
+    <table border="1" cellpadding="10">
+
+        <thead>
+
+            <tr>
+
+                <th>Exercise</th>
+
+                <th>Weight (kg)</th>
+
+                <th>Sets</th>
+
+                <th>Reps</th>
+
+                <th>Muscle Group</th>
+
+                <th>Date</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody id="workoutTable">
+
+        <% if(workouts.length === 0){ %>
+
+            <tr>
+
+                <td colspan="6">
+
+                    No workouts found.
+
+                </td>
+
+            </tr>
+
+        <% } %>
+
+        <% workouts.forEach(workout => { %>
+
+            <tr>
+
+                <td><%= workout.exercise %></td>
+
+                <td><%= workout.weight %></td>
+
+                <td><%= workout.sets %></td>
+
+                <td><%= workout.reps %></td>
+
+                <td><%= workout.muscle_group %></td>
+
+                <td><%= workout.date %></td>
+
+            </tr>
+
+        <% }) %>
+
+        </tbody>
+
+    </table>
+<script>
+
+const searchBox = document.getElementById("search");
+const muscleBox = document.getElementById("muscle");
+const sortBox = document.getElementById("sort");
+
+const table = document.getElementById("workoutTable");
+
+async function liveSearch(){
+
+    const search = searchBox.value;
+    const muscle = muscleBox.value;
+    const sort = sortBox.value;
+
+    const response = await fetch(
+
+        `/workouts/search?search=${search}&muscle=${muscle}&sort=${sort}`
+
+    );
+
+    const workouts = await response.json();
+
+    table.innerHTML = "";
+
+    if(workouts.length === 0){
+
+        table.innerHTML =
+
+        `<tr>
+
+            <td colspan="6">
+
+                No workouts found.
+
+            </td>
+
+        </tr>`;
+
+        return;
+
+    }
+
+    workouts.forEach(workout=>{
+
+        table.innerHTML +=
+
+        `
+        <tr>
+
+            <td>${workout.exercise}</td>
+
+            <td>${workout.weight}</td>
+
+            <td>${workout.sets}</td>
+
+            <td>${workout.reps}</td>
+
+            <td>${workout.muscle_group}</td>
+
+            <td>${workout.date}</td>
+
+        </tr>
+
+        `;
+
+    });
+
+}
+
+searchBox.addEventListener("keyup",liveSearch);
+
+muscleBox.addEventListener("change",liveSearch);
+
+sortBox.addEventListener("change",liveSearch);
+
+</script>
+</body>
+</html>
