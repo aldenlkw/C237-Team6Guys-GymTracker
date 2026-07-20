@@ -1,19 +1,13 @@
 const mysql = require('mysql2');
-require('dotenv').config();
 
-// Local MySQL rejects SSL. Azure requires it.
-// The DB_SSL flag in .env decides, so the SAME code runs in both places.
+// Hardcoded database configuration
 const config = {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT
+    host: 'localhost',
+    user: 'root',
+    password: 'RP738964$',
+    database: 'c237_001_team6guys',
+    port: 3306
 };
-
-if (process.env.DB_SSL === 'true') {
-    config.ssl = { rejectUnauthorized: true };
-}
 
 const connection = mysql.createConnection(config);
 
@@ -22,7 +16,7 @@ connection.connect((err) => {
         console.error('Database connection FAILED:', err.message);
         return;
     }
-    console.log('Connected to MySQL database:', process.env.DB_NAME);
+    console.log('Connected to MySQL database:', config.database);
 });
 
 module.exports = connection;
