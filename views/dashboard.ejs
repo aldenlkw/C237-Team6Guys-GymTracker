@@ -1,19 +1,322 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><%= title %> | GymTrack</title>
-    <link rel="stylesheet" href="/style.css">
-  </head>
-  <body>
-    <!-- Temporary authentication test page; replace with the full dashboard later. -->
-    <main class="auth-card">
-      <h1>Welcome, <%= user.username %></h1>
-      <p>You are logged in as <strong><%= user.role %></strong>.</p>
-      <form action="/logout" method="post">
-        <button class="primary" type="submit">Log out</button>
-      </form>
-    </main>
-  </body>
-</html>
+<%- include('partials/header') %>
+
+<% if (successMessage) { %>
+  <div class="alert alert-success"><%= successMessage %></div>
+<% } %>
+<% if (errorMessage) { %>
+  <div class="alert alert-error"><%= errorMessage %></div>
+<% } %>
+
+<div class="page-head">
+    <div>
+        <h1>Dashboard</h1>
+        <p class="form-sub">Your training summary, insights and personal records.</p>
+    </div>
+</div>
+
+<form class="filter-bar" method="GET" action="/dashboard">
+    <div>
+        <label for="range">Time Range</label>
+        <select id="range" name="range">
+            <option value="all" <%= (typeof range !== 'undefined' && range === 'all') ? 'selected' : '' %>>All time</option>
+            <option value="7d" <%= (typeof range !== 'undefined' && range === '7d') ? 'selected' : '' %>>Last 7 days</option>
+            <option value="30d" <%= (typeof range !== 'undefined' && range === '30d') ? 'selected' : '' %>>Last 30 days</option>
+            <option value="90d" <%= (typeof range !== 'undefined' && range === '90d') ? 'selected' : '' %>>Last 3 months</option>
+            <option value="1y" <%= (typeof range !== 'undefined' && range === '1y') ? 'selected' : '' %>>Last year</option>
+        </select>
+    </div>
+    <div>
+        <label for="search">Search PRs</label>
+        <input id="search" name="search" type="text" value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>" placeholder="Exercise or muscle group">
+    </div>
+    <div>
+        <label for="sort">Sort PRs</label>
+        <select id="sort" name="sort">
+            <option value="newest" <%= (typeof sortMode !== 'undefined' && sortMode === 'newest') ? 'selected' : '' %>>Newest</option>
+            <option value="oldest" <%= (typeof sortMode !== 'undefined' && sortMode === 'oldest') ? 'selected' : '' %>>Oldest</option>
+            <option value="highestWeight" <%= (typeof sortMode !== 'undefined' && sortMode === 'highestWeight') ? 'selected' : '' %>>Highest Weight</option>
+            <option value="highestVolume" <%= (typeof sortMode !== 'undefined' && sortMode === 'highestVolume') ? 'selected' : '' %>>Highest Volume</option>
+            <option value="mostReps" <%= (typeof sortMode !== 'undefined' && sortMode === 'mostReps') ? 'selected' : '' %>>Most Reps</option>
+        </select>
+    </div>
+    <div>
+        <button class="btn-sm btn-add" type="submit">Apply</button>
+    </div>
+</form>
+
+<div class="card-grid">
+    <div class="stat-card">
+        <div class="value"><%= totalWorkouts %></div>
+        <div class="label">Total Workouts</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= totalVolume %> kg</div>
+        <div class="label">Total Volume Lifted</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= favouriteExercise %></div>
+        <div class="label">Most Frequent Exercise</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof totalPersonalRecords !== 'undefined' ? totalPersonalRecords : 0 %></div>
+        <div class="label">Total Personal Records</div>
+    </div>
+</div>
+
+<div class="card-grid">
+    <div class="stat-card">
+        <div class="value"><%= typeof workoutBests !== 'undefined' && workoutBests.maxWeight ? workoutBests.maxWeight : 0 %> kg</div>
+        <div class="label">Max Weight</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof workoutBests !== 'undefined' && workoutBests.maxVolume ? workoutBests.maxVolume : 0 %> kg</div>
+        <div class="label">Max Volume</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof workoutBests !== 'undefined' && workoutBests.maxReps ? workoutBests.maxReps : 0 %></div>
+        <div class="label">Max Reps</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof strongestLift !== 'undefined' && strongestLift ? strongestLift : 0 %> kg</div>
+        <div class="label">Strongest Lift Ever</div>
+    </div>
+</div>
+
+<div class="card-grid">
+    <div class="stat-card">
+        <div class="value"><%= typeof trainingDays !== 'undefined' ? trainingDays : 0 %></div>
+        <div class="label">Training Days</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof averageWorkoutDuration !== 'undefined' ? averageWorkoutDuration : 0 %> min</div>
+        <div class="label">Average Duration</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof averageWorkoutVolume !== 'undefined' ? averageWorkoutVolume : 0 %> kg</div>
+        <div class="label">Average Volume</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof currentStreak !== 'undefined' ? currentStreak : 0 %></div>
+        <div class="label">Current Streak</div>
+    </div>
+</div>
+
+<div class="card-grid">
+    <div class="stat-card">
+        <div class="value"><%= typeof lastWorkoutDate !== 'undefined' ? lastWorkoutDate : 'No workouts yet' %></div>
+        <div class="label">Last Workout</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof mostTrainedMuscleGroup !== 'undefined' ? mostTrainedMuscleGroup : 'No data' %></div>
+        <div class="label">Most Trained Muscle Group</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof mostFrequentExercise !== 'undefined' ? mostFrequentExercise : 'No data' %></div>
+        <div class="label">Most Performed Exercise</div>
+    </div>
+    <div class="stat-card">
+        <div class="value"><%= typeof mostImprovedExercise !== 'undefined' && mostImprovedExercise && mostImprovedExercise.exerciseName ? mostImprovedExercise.exerciseName : 'N/A' %></div>
+        <div class="label">Most Improved Exercise</div>
+    </div>
+</div>
+
+<div class="page-head">
+    <div>
+        <h2>Training Insights</h2>
+    </div>
+</div>
+
+<div class="insight-list">
+    <% if (typeof insights !== 'undefined' && insights.length) { %>
+        <% insights.forEach((insight) => { %>
+            <div class="insight-item"><%= insight %></div>
+        <% }) %>
+    <% } else { %>
+        <div class="insight-item">Add more workouts to unlock richer insights.</div>
+    <% } %>
+</div>
+
+<div class="card-grid">
+    <div class="stat-card chart-card">
+        <canvas id="volumeChart"></canvas>
+    </div>
+    <div class="stat-card chart-card">
+        <canvas id="muscleChart"></canvas>
+    </div>
+</div>
+
+<div class="card-grid">
+    <div class="stat-card chart-card">
+        <canvas id="weeklyChart"></canvas>
+    </div>
+    <div class="stat-card chart-card">
+        <canvas id="monthlyChart"></canvas>
+    </div>
+</div>
+
+<div class="page-head">
+    <div>
+        <h2>My Personal Records</h2>
+    </div>
+</div>
+
+<% if (personalRecords.length === 0) { %>
+    <div class="empty-state">
+        <p>No personal records yet.</p>
+    </div>
+<% } else { %>
+    <table>
+        <thead>
+            <tr>
+                <th>Exercise</th>
+                <th>PR Type</th>
+                <th>Current PR</th>
+                <th>Previous PR</th>
+                <th>Improvement</th>
+                <th>1RM</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% personalRecords.forEach((record) => { %>
+                <tr>
+                    <td>
+                        <strong><%= record.exerciseName %></strong>
+                        <% if (record.isNewPr) { %>
+                            <span class="badge badge-success">New PR</span>
+                        <% } %>
+                    </td>
+                    <td><%= record.prType || 'Weight' %></td>
+                    <td><%= record.maxWeight %> <%= record.weightUnit || 'kg' %></td>
+                    <td><%= record.previousPr ? record.previousPr + ' ' + (record.weightUnit || 'kg') : '-' %></td>
+                    <td><%= record.improvementAmount ? (record.improvementAmount > 0 ? '+' : '') + record.improvementAmount + ' ' + (record.weightUnit || 'kg') : '-' %></td>
+                    <td><%= record.oneRepMax ? record.oneRepMax : '-' %></td>
+                    <td><%= new Date(record.achievedDate).toISOString().split('T')[0] %></td>
+                    <td>
+                        <a class="btn-sm btn-edit" href="/dashboard/records/edit/<%= record.recordId %>">Edit</a>
+                        <form action="/dashboard/records/delete/<%= record.recordId %>" method="POST" class="inline-form">
+                            <button class="btn-sm btn-delete" type="submit" onclick="return confirm('Delete this record?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+<% } %>
+
+<div class="form-card">
+    <h2><%= (typeof formMode !== 'undefined' && formMode === 'edit') ? 'Edit Personal Record' : 'Add Personal Record' %></h2>
+    <p class="form-sub">Record your latest milestone.</p>
+
+    <form action="<%= (typeof formMode !== 'undefined' && formMode === 'edit') ? '/dashboard/records/edit/' + editRecord.recordId : '/dashboard/records/add' %>" method="POST">
+        <label for="exerciseName">Exercise Name</label>
+        <input id="exerciseName" name="exerciseName" type="text" required value="<%= (typeof formMode !== 'undefined' && formMode === 'edit') ? editRecord.exerciseName : '' %>">
+
+        <label for="muscleGroup">Muscle Group</label>
+        <select id="muscleGroup" name="muscleGroup" required>
+            <option value="">Select one</option>
+            <option value="Chest" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.muscleGroup === 'Chest') ? 'selected' : '' %>>Chest</option>
+            <option value="Back" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.muscleGroup === 'Back') ? 'selected' : '' %>>Back</option>
+            <option value="Legs" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.muscleGroup === 'Legs') ? 'selected' : '' %>>Legs</option>
+            <option value="Arms" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.muscleGroup === 'Arms') ? 'selected' : '' %>>Arms</option>
+            <option value="Shoulders" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.muscleGroup === 'Shoulders') ? 'selected' : '' %>>Shoulders</option>
+            <option value="Core" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.muscleGroup === 'Core') ? 'selected' : '' %>>Core</option>
+        </select>
+
+        <label for="maxWeight">Max Weight</label>
+        <input id="maxWeight" name="maxWeight" type="number" step="0.01" min="0" required value="<%= (typeof formMode !== 'undefined' && formMode === 'edit') ? editRecord.maxWeight : '' %>">
+
+        <label for="weightUnit">Weight Unit</label>
+        <select id="weightUnit" name="weightUnit">
+            <option value="kg" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.weightUnit === 'kg') ? 'selected' : '' %>>kg</option>
+            <option value="lbs" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.weightUnit === 'lbs') ? 'selected' : '' %>>lbs</option>
+        </select>
+
+        <label for="prType">PR Type</label>
+        <select id="prType" name="prType">
+            <option value="Weight" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.prType === 'Weight') ? 'selected' : '' %>>Weight</option>
+            <option value="Volume" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.prType === 'Volume') ? 'selected' : '' %>>Volume</option>
+            <option value="Reps" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.prType === 'Reps') ? 'selected' : '' %>>Reps</option>
+            <option value="Time" <%= (typeof formMode !== 'undefined' && formMode === 'edit' && editRecord.prType === 'Time') ? 'selected' : '' %>>Time</option>
+        </select>
+
+        <label for="totalReps">Total Reps</label>
+        <input id="totalReps" name="totalReps" type="number" min="1" required value="<%= (typeof formMode !== 'undefined' && formMode === 'edit') ? editRecord.totalReps : '' %>">
+
+        <label for="previousPr">Previous PR</label>
+        <input id="previousPr" name="previousPr" type="number" step="0.01" min="0" value="<%= (typeof formMode !== 'undefined' && formMode === 'edit') ? editRecord.previousPr : '' %>">
+
+        <label for="timeMinutes">Time (minutes)</label>
+        <input id="timeMinutes" name="timeMinutes" type="number" min="0" value="<%= (typeof formMode !== 'undefined' && formMode === 'edit') ? editRecord.timeMinutes : '' %>">
+
+        <label for="achievedDate">Date Achieved</label>
+        <input id="achievedDate" name="achievedDate" type="date" required value="<%= (typeof formMode !== 'undefined' && formMode === 'edit') ? new Date(editRecord.achievedDate).toISOString().split('T')[0] : '' %>">
+
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="3"><%= (typeof formMode !== 'undefined' && formMode === 'edit') ? editRecord.notes || '' : '' %></textarea>
+
+        <button class="btn-primary" type="submit"><%= (typeof formMode !== 'undefined' && formMode === 'edit') ? 'Update Record' : 'Save Record' %></button>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const volumeTrend = <%- JSON.stringify(typeof volumeTrend !== 'undefined' ? volumeTrend : []) %>;
+    const muscleBreakdown = <%- JSON.stringify(typeof muscleBreakdown !== 'undefined' ? muscleBreakdown : []) %>;
+    const weeklyFrequency = <%- JSON.stringify(typeof weeklyFrequency !== 'undefined' ? weeklyFrequency : []) %>;
+    const monthlyVolume = <%- JSON.stringify(typeof monthlyVolume !== 'undefined' ? monthlyVolume : []) %>;
+
+    new Chart(document.getElementById('volumeChart'), {
+        type: 'line',
+        data: {
+            labels: volumeTrend.map(r => new Date(r.workoutDate).toISOString().split('T')[0]),
+            datasets: [{
+                label: 'Volume (kg)',
+                data: volumeTrend.map(r => r.sessionVolume),
+                borderColor: '#4CAF50',
+                tension: 0.3,
+                fill: true
+            }]
+        }
+    });
+
+    new Chart(document.getElementById('muscleChart'), {
+        type: 'doughnut',
+        data: {
+            labels: muscleBreakdown.map(r => r.muscleGroup),
+            datasets: [{
+                data: muscleBreakdown.map(r => r.workoutCount),
+                backgroundColor: [
+                    '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4'
+                ]
+            }]
+        }
+    });
+
+    new Chart(document.getElementById('weeklyChart'), {
+        type: 'bar',
+        data: {
+            labels: weeklyFrequency.map(r => r.label),
+            datasets: [{
+                label: 'Workouts per week',
+                data: weeklyFrequency.map(r => r.workoutCount),
+                backgroundColor: '#ffd100'
+            }]
+        }
+    });
+
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'bar',
+        data: {
+            labels: monthlyVolume.map(r => r.label),
+            datasets: [{
+                label: 'Monthly volume',
+                data: monthlyVolume.map(r => r.monthVolume),
+                backgroundColor: '#2196F3'
+            }]
+        }
+    });
+</script>
+
+<%- include('partials/footer') %>

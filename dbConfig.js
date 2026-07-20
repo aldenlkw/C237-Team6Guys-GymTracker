@@ -14,4 +14,6 @@ const pool = mysql.createPool({
     ssl: { rejectUnauthorized: false }
 });
 
-module.exports = pool.promise();
+const promisePool = pool.promise();
+module.exports = promisePool;   // default: promise (goals, workouts, forum, auth)
+module.exports.cb = pool;        // callback pool for Vince's dashboard
