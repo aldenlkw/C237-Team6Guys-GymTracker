@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Create Forum Post</title>
+
+    <link rel="stylesheet" href="/forum.css">
+
+</head>
+
+<body>
+
+    <h1>Create a New Forum Question</h1>
+
+    <p>
+
+        Ask the community for advice, tips or help.
+
+    </p>
+
+    <hr>
+
+    <form action="/forum/create" method="POST">
+
+        <!-- ===========================
+             TITLE
+        ============================ -->
+
+        <label>
+
+            Question Title
+
+        </label>
+
+        <br>
+
+        <input
+            type="text"
+            name="title"
+            placeholder="Example: How do I increase my bench press?"
+            required>
+
+        <br><br>
+
+        <!-- ===========================
+             CATEGORY
+        ============================ -->
+
+        <label>
+
+            Category
+
+        </label>
+
+        <br>
+
+        <select
+            name="category"
+            required>
+
+            <option value="">Select Category</option>
+
+            <option value="Strength">Strength</option>
+
+            <option value="Nutrition">Nutrition</option>
+
+            <option value="Weight Loss">Weight Loss</option>
+
+            <option value="Supplements">Supplements</option>
+
+            <option value="Injuries">Injuries</option>
+
+        </select>
+
+        <br><br>
+
+        <!-- ===========================
+             QUESTION
+        ============================ -->
+
+        <label>
+
+            Your Question
+
+        </label>
+
+        <br>
+
+        <textarea
+            name="question"
+            rows="8"
+            cols="70"
+            placeholder="Explain your question here..."
+            required></textarea>
+
+        <br><br>
+
+        <button type="submit">
+
+            Post Question
+
+        </button>
+
+        <a href="/forum">
+
+            <button type="button">
+
+                Cancel
+
+            </button>
+
+        </a>
+
+    </form>
+
+</body>
+
+</html>

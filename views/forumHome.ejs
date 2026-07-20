@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Gym Forum</title>
+
+    <link rel="stylesheet" href="/forum.css">
+
+</head>
+
+<body>
+
+    <h1>🏋️ Gym Community Forum</h1>
+
+    <p>
+
+        Ask questions, share advice and help other gym members.
+
+    </p>
+
+    <hr>
+
+    <!-- ======================
+         Search & Filter
+    ======================= -->
+
+    <form action="/forum" method="GET">
+
+        <input
+            type="text"
+            name="search"
+            placeholder="Search questions...">
+
+        <select name="category">
+
+            <option value="">All Categories</option>
+
+            <option value="Strength">Strength</option>
+
+            <option value="Nutrition">Nutrition</option>
+
+            <option value="Weight Loss">Weight Loss</option>
+
+            <option value="Supplements">Supplements</option>
+
+            <option value="Injuries">Injuries</option>
+
+        </select>
+
+        <button type="submit">
+
+            Search
+
+        </button>
+
+    </form>
+
+    <br>
+
+    <a href="/forum/create">
+
+        <button>
+
+            + Create New Question
+
+        </button>
+
+    </a>
+
+    <hr>
+
+    <!-- ======================
+         Forum Posts
+    ======================= -->
+
+    <% if(posts.length === 0){ %>
+
+        <h3>
+
+            No questions have been posted yet.
+
+        </h3>
+
+    <% } %>
+
+    <% posts.forEach(post=>{ %>
+
+        <div class="postCard">
+
+            <h2>
+
+                <%= post.title %>
+
+            </h2>
+
+            <p>
+
+                <%= post.question.substring(0,150) %>...
+
+            </p>
+
+            <p>
+
+                <strong>Category:</strong>
+
+                <%= post.category %>
+
+            </p>
+
+            <p>
+
+                Posted by
+
+                <%= post.username %>
+
+            </p>
+
+            <a href="/forum/post/<%= post.id %>">
+
+                <button>
+
+                    View Discussion
+
+                </button>
+
+            </a>
+
+        </div>
+
+        <hr>
+
+    <% }) %>
+
+</body>
+
+</html>
