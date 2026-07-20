@@ -8,19 +8,47 @@
     <a href="/workouts/add" class="btn-sm btn-add">+ Add Workout</a>
 </div>
 
-<% if (workouts && workouts.length > 0) { %>
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Exercise</th>
-                <th>Weight (kg)</th>
-                <th>Reps</th>
-                <th>Sets</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
+<div class="filter-bar">
+    <div>
+        <label for="search">Search</label>
+        <input type="text" id="search" placeholder="Search exercise...">
+    </div>
+    <div>
+        <label for="muscle">Muscle Group</label>
+        <select id="muscle">
+            <option value="">All</option>
+            <option value="Chest">Chest</option>
+            <option value="Back">Back</option>
+            <option value="Legs">Legs</option>
+            <option value="Shoulders">Shoulders</option>
+            <option value="Arms">Arms</option>
+            <option value="Core">Core</option>
+        </select>
+    </div>
+    <div>
+        <label for="sort">Sort By</label>
+        <select id="sort">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="highest">Highest Weight</option>
+            <option value="lowest">Lowest Weight</option>
+        </select>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Exercise</th>
+            <th>Weight (kg)</th>
+            <th>Reps</th>
+            <th>Sets</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="workoutTable">
+        <% if (workouts && workouts.length > 0) { %>
             <% workouts.forEach(workout => { %>
                 <tr>
                     <td><%= new Date(workout.workoutDate).toLocaleDateString('en-GB') %></td>
@@ -40,14 +68,52 @@
                     </td>
                 </tr>
             <% }); %>
-        </tbody>
-    </table>
-<% } else { %>
-    <div class="empty-state">
-        <p>No workouts yet.</p>
-        <p class="form-sub">Start tracking by adding your first workout.</p>
-        <a href="/workouts/add" class="btn-sm btn-add" style="margin-top: 16px;">+ Add Workout</a>
-    </div>
-<% } %>
+        <% } else { %>
+            <tr><td colspan="6">No workouts yet. Add your first one above.</td></tr>
+        <% } %>
+    </tbody>
+</table>
+
+<script>
+const searchBox = document.getElementById('search');
+const muscleBox = document.getElementById('muscle');
+const sortBox = document.getElementById('sort');
+const table = document.getElementById('workoutTable');
+
+async function liveSearch() {
+    const params = new URLSearchParams({
+        search: searchBox.value,
+        muscle: muscleBox.value,
+        sort: sortBox.value
+    });
+    const res = await fetch('/workouts/search?' + params.toString());
+    const workouts = await res.json();
+
+    if (workouts.length === 0) {
+        table.innerHTML = '<tr><td colspan="6">No workouts found.</td></tr>';
+        return;
+    }
+
+    table.innerHTML = workouts.map(w => `
+        <tr>
+            <td>${new Date(w.workoutDate).toLocaleDateString('en-GB')}</td>
+            <td><strong>${w.exerciseName}</strong> <span class="muscle-tag">${w.muscleGroup}</span></td>
+            <td>${w.weight}</td>
+            <td>${w.reps}</td>
+            <td>${w.sets}</td>
+            <td>
+                <div class="goal-actions">
+                    <a href="/workouts/edit/${w.workoutId}" class="btn-sm btn-edit">Edit</a>
+                    <a href="/workouts/delete/${w.workoutId}" class="btn-sm btn-delete" onclick="return confirm('Delete this workout?')">Delete</a>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+searchBox.addEventListener('keyup', liveSearch);
+muscleBox.addEventListener('change', liveSearch);
+sortBox.addEventListener('change', liveSearch);
+</script>
 
 <%- include('partials/footer') %>
