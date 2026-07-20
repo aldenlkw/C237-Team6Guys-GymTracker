@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const goalRoutes = require('./routes/goals');
+const workoutRoutes = require('./routes/workouts');
 const db = require('./dbConfig');
 
 const app = express();
@@ -41,14 +42,13 @@ app.use((req, res, next) => {
     next();
 });
 
-// ---------- Route files ----------dir middleware
-// const workoutRoutes = require('./routes/workouts');    // Kaijet + Sid
+// ---------- Route files ----------
 // const dashboardRoutes = require('./routes/dashboard'); // Vince
 // const adminRoutes = require('./routes/admin');         // Zarick
 
 app.use('/', authRoutes);                                // Fahmy
 app.use('/goals', goalRoutes);                           // Alden
-// app.use('/workouts', workoutRoutes);                   // Kaijet + Sid
+app.use('/workouts', workoutRoutes);                     // Kaijet + Sid
 // app.use('/dashboard', dashboardRoutes);                // Vince
 // app.use('/admin', adminRoutes);                        // Zarick
 
@@ -56,7 +56,7 @@ app.use('/goals', goalRoutes);                           // Alden
 // TEMPORARY DEV SCAFFOLD - delete once login is confirmed working
 // =====================================================================
 app.get('/dev-login/:username', (req, res) => {
-    db.query('SELECT userId, username, role FROM users WHERE username = ?',
+    db.cb.query('SELECT userId, username, role FROM users WHERE username = ?',
         [req.params.username], (err, results) => {
             if (err || results.length === 0) return res.send('No such test user.');
             req.session.user = results[0];

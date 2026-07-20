@@ -1,17 +1,17 @@
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2');
+require('dotenv').config();
 
 const pool = mysql.createPool({
-  host: 'c237-eaint-mysql.mysql.database.azure.com',
-  user: 'c237_001',
-  password: 'c237001@2026!',
-  database: 'c237_001_team6guys',
-  port: 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+    host: process.env.DB_HOST || 'c237-eaint-mysql.mysql.database.azure.com',
+    user: process.env.DB_USER || 'c237_001',
+    password: process.env.DB_PASSWORD || 'c237001@2026!',
+    database: process.env.DB_NAME || 'c237_001_team6guys',
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    connectTimeout: 10000,
+    ssl: { rejectUnauthorized: false }
 });
 
-module.exports = pool;
+module.exports = pool.promise();

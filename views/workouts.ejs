@@ -1,0 +1,53 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+    <div>
+        <h1>My Workouts</h1>
+        <p class="form-sub">Log your lifts and track every session.</p>
+    </div>
+    <a href="/workouts/add" class="btn-sm btn-add">+ Add Workout</a>
+</div>
+
+<% if (workouts && workouts.length > 0) { %>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Exercise</th>
+                <th>Weight (kg)</th>
+                <th>Reps</th>
+                <th>Sets</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% workouts.forEach(workout => { %>
+                <tr>
+                    <td><%= new Date(workout.workoutDate).toLocaleDateString('en-GB') %></td>
+                    <td>
+                        <strong><%= workout.exerciseName %></strong>
+                        <span class="muscle-tag"><%= workout.muscleGroup %></span>
+                    </td>
+                    <td><%= workout.weight %></td>
+                    <td><%= workout.reps %></td>
+                    <td><%= workout.sets %></td>
+                    <td>
+                        <div class="goal-actions">
+                            <a href="/workouts/edit/<%= workout.workoutId %>" class="btn-sm btn-edit">Edit</a>
+                            <a href="/workouts/delete/<%= workout.workoutId %>" class="btn-sm btn-delete"
+                               onclick="return confirm('Delete this workout?')">Delete</a>
+                        </div>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+<% } else { %>
+    <div class="empty-state">
+        <p>No workouts yet.</p>
+        <p class="form-sub">Start tracking by adding your first workout.</p>
+        <a href="/workouts/add" class="btn-sm btn-add" style="margin-top: 16px;">+ Add Workout</a>
+    </div>
+<% } %>
+
+<%- include('partials/footer') %>

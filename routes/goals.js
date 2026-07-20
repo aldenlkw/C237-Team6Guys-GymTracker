@@ -4,17 +4,10 @@ const { checkAuthenticated } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Every route in this file requires a logged-in user.
 router.use(checkAuthenticated);
 
-// ---------------------------------------------------------------
-// Helper: a goal is "achieved" once the user's best ever lift for
-// that exercise reaches the target weight. This UPDATE compares each
-// active goal against the user's heaviest logged workout for the same
-// exercise, and flips the status automatically. Runs before we list
-// goals, so the page never shows a stale "active" badge.
-// ---------------------------------------------------------------
-const refreshAchievedGoals = (userId, callback) => {
+// Flip active goals to "achieved" when the user's best lift reaches the target.
+const refreshAchievedGoals = async (userId) => {
     const sql = `
         UPDATE goals g
         JOIN (
@@ -27,21 +20,15 @@ const refreshAchievedGoals = (userId, callback) => {
         WHERE g.userId = ?
           AND g.status = 'active'
           AND best.bestWeight >= g.targetWeight`;
-    db.query(sql, [userId, userId], callback);
+    await db.query(sql, [userId, userId]);
 };
 
-// ---------------------------------------------------------------
 // GET /goals - list this user's goals with progress
-// ---------------------------------------------------------------
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     const userId = req.session.user.userId;
+    try {
+        await refreshAchievedGoals(userId);
 
-    refreshAchievedGoals(userId, (err) => {
-        if (err) console.error(err);
-
-        // LEFT JOIN on a subquery of the user's best lift per exercise.
-        // LEFT (not INNER) so a goal still appears when the user has
-        // never logged that exercise - bestWeight is simply NULL.
         const sql = `
             SELECT g.goalId, g.targetWeight, g.targetDate, g.status,
                    e.exerciseName, e.muscleGroup,
@@ -57,66 +44,52 @@ router.get('/', (req, res) => {
             WHERE g.userId = ?
             ORDER BY g.status ASC, g.targetDate ASC`;
 
-        db.query(sql, [userId, userId], (err, goals) => {
-            if (err) {
-                console.error(err);
-                req.flash('error', 'Could not load your goals.');
-                return res.redirect('/');
-            }
+        const [goals] = await db.query(sql, [userId, userId]);
 
-            const today = new Date();
-
-            // Turn raw rows into what the view needs.
-            const goalsWithProgress = goals.map(goal => {
-                const best = goal.bestWeight ? parseFloat(goal.bestWeight) : 0;
-                const target = parseFloat(goal.targetWeight);
-
-                // Cap at 100 so an over-achieved goal cannot render a
-                // progress bar wider than its container.
-                const percent = Math.min(Math.round((best / target) * 100), 100);
-
-                // Days between today and the target date.
-                const msPerDay = 1000 * 60 * 60 * 24;
-                const daysLeft = Math.ceil((new Date(goal.targetDate) - today) / msPerDay);
-
-                return {
-                    ...goal,
-                    bestWeight: best,
-                    percent: percent,
-                    remaining: Math.max(target - best, 0).toFixed(2),
-                    daysLeft: daysLeft,
-                    overdue: daysLeft < 0 && goal.status === 'active'
-                };
-            });
-
-            res.render('goals', { goals: goalsWithProgress });
+        const today = new Date();
+        const goalsWithProgress = goals.map(goal => {
+            const best = goal.bestWeight ? parseFloat(goal.bestWeight) : 0;
+            const target = parseFloat(goal.targetWeight);
+            const percent = Math.min(Math.round((best / target) * 100), 100);
+            const msPerDay = 1000 * 60 * 60 * 24;
+            const daysLeft = Math.ceil((new Date(goal.targetDate) - today) / msPerDay);
+            return {
+                ...goal,
+                bestWeight: best,
+                percent: percent,
+                remaining: Math.max(target - best, 0).toFixed(2),
+                daysLeft: daysLeft,
+                overdue: daysLeft < 0 && goal.status === 'active'
+            };
         });
-    });
+
+        res.render('goals', { goals: goalsWithProgress });
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Could not load your goals.');
+        res.redirect('/');
+    }
 });
 
-// ---------------------------------------------------------------
 // GET /goals/add - show the create form
-// ---------------------------------------------------------------
-router.get('/add', (req, res) => {
-    db.query('SELECT * FROM exercises ORDER BY muscleGroup, exerciseName',
-        (err, exercises) => {
-            if (err) {
-                console.error(err);
-                req.flash('error', 'Could not load the exercise list.');
-                return res.redirect('/goals');
-            }
-            res.render('addGoal', { exercises });
-        });
+router.get('/add', async (req, res) => {
+    try {
+        const [exercises] = await db.query(
+            'SELECT * FROM exercises ORDER BY muscleGroup, exerciseName'
+        );
+        res.render('addGoal', { exercises });
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Could not load the exercise list.');
+        res.redirect('/goals');
+    }
 });
 
-// ---------------------------------------------------------------
 // POST /goals/add - create a goal
-// ---------------------------------------------------------------
-router.post('/add', (req, res) => {
+router.post('/add', async (req, res) => {
     const { exerciseId, targetWeight, targetDate } = req.body;
     const userId = req.session.user.userId;
 
-    // Server-side validation. The browser's "required" can be bypassed.
     if (!exerciseId || !targetWeight || !targetDate) {
         req.flash('error', 'All fields are required.');
         return res.redirect('/goals/add');
@@ -126,16 +99,10 @@ router.post('/add', (req, res) => {
         return res.redirect('/goals/add');
     }
 
-    // Block one user setting two goals for the same exercise -
-    // otherwise the progress bars would compete over the same lift.
-    const dupSql = `SELECT goalId FROM goals
-                    WHERE userId = ? AND exerciseId = ? AND status = 'active'`;
-    db.query(dupSql, [userId, exerciseId], (err, existing) => {
-        if (err) {
-            console.error(err);
-            req.flash('error', 'Database error.');
-            return res.redirect('/goals/add');
-        }
+    try {
+        const dupSql = `SELECT goalId FROM goals
+                        WHERE userId = ? AND exerciseId = ? AND status = 'active'`;
+        const [existing] = await db.query(dupSql, [userId, exerciseId]);
         if (existing.length > 0) {
             req.flash('error', 'You already have an active goal for that exercise.');
             return res.redirect('/goals');
@@ -143,52 +110,45 @@ router.post('/add', (req, res) => {
 
         const sql = `INSERT INTO goals (userId, exerciseId, targetWeight, targetDate, status)
                      VALUES (?, ?, ?, ?, 'active')`;
-        db.query(sql, [userId, exerciseId, targetWeight, targetDate], (err) => {
-            if (err) {
-                console.error(err);
-                req.flash('error', 'Could not create the goal.');
-                return res.redirect('/goals/add');
-            }
-            req.flash('success', 'Goal created.');
-            res.redirect('/goals');
-        });
-    });
+        await db.query(sql, [userId, exerciseId, targetWeight, targetDate]);
+        req.flash('success', 'Goal created.');
+        res.redirect('/goals');
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Could not create the goal.');
+        res.redirect('/goals/add');
+    }
 });
 
-// ---------------------------------------------------------------
 // GET /goals/edit/:id - show the edit form
-// ---------------------------------------------------------------
-router.get('/edit/:id', (req, res) => {
+router.get('/edit/:id', async (req, res) => {
     const userId = req.session.user.userId;
-
-    // "AND userId = ?" is the ownership check. Without it, changing the
-    // id in the URL would let any user edit anyone else's goal.
-    const sql = 'SELECT * FROM goals WHERE goalId = ? AND userId = ?';
-    db.query(sql, [req.params.id, userId], (err, results) => {
-        if (err || results.length === 0) {
+    try {
+        const [results] = await db.query(
+            'SELECT * FROM goals WHERE goalId = ? AND userId = ?',
+            [req.params.id, userId]
+        );
+        if (results.length === 0) {
             req.flash('error', 'Goal not found.');
             return res.redirect('/goals');
         }
 
-        db.query('SELECT * FROM exercises ORDER BY muscleGroup, exerciseName',
-            (err, exercises) => {
-                if (err) {
-                    console.error(err);
-                    return res.redirect('/goals');
-                }
-                const goal = results[0];
-                // <input type="date"> only accepts YYYY-MM-DD.
-                goal.targetDateInput = new Date(goal.targetDate)
-                    .toISOString().split('T')[0];
-                res.render('editGoal', { goal, exercises });
-            });
-    });
+        const [exercises] = await db.query(
+            'SELECT * FROM exercises ORDER BY muscleGroup, exerciseName'
+        );
+
+        const goal = results[0];
+        goal.targetDateInput = new Date(goal.targetDate).toISOString().split('T')[0];
+        res.render('editGoal', { goal, exercises });
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Goal not found.');
+        res.redirect('/goals');
+    }
 });
 
-// ---------------------------------------------------------------
 // POST /goals/edit/:id - update a goal
-// ---------------------------------------------------------------
-router.post('/edit/:id', (req, res) => {
+router.post('/edit/:id', async (req, res) => {
     const { exerciseId, targetWeight, targetDate } = req.body;
     const userId = req.session.user.userId;
 
@@ -201,48 +161,45 @@ router.post('/edit/:id', (req, res) => {
         return res.redirect('/goals/edit/' + req.params.id);
     }
 
-    // Reset to 'active' - if the target was raised, the goal is no
-    // longer achieved. refreshAchievedGoals() re-flips it if it still is.
-    const sql = `UPDATE goals
-                 SET exerciseId = ?, targetWeight = ?, targetDate = ?, status = 'active'
-                 WHERE goalId = ? AND userId = ?`;
-    db.query(sql, [exerciseId, targetWeight, targetDate, req.params.id, userId],
-        (err, result) => {
-            if (err) {
-                console.error(err);
-                req.flash('error', 'Could not update the goal.');
-                return res.redirect('/goals');
-            }
-            if (result.affectedRows === 0) {
-                req.flash('error', 'Goal not found.');
-                return res.redirect('/goals');
-            }
-            req.flash('success', 'Goal updated.');
-            res.redirect('/goals');
-        });
-});
-
-// ---------------------------------------------------------------
-// POST /goals/delete/:id - delete a goal
-// POST, not GET: a link could be triggered by a crawler or a prefetch.
-// ---------------------------------------------------------------
-router.post('/delete/:id', (req, res) => {
-    const userId = req.session.user.userId;
-
-    const sql = 'DELETE FROM goals WHERE goalId = ? AND userId = ?';
-    db.query(sql, [req.params.id, userId], (err, result) => {
-        if (err) {
-            console.error(err);
-            req.flash('error', 'Could not delete the goal.');
+    try {
+        const sql = `UPDATE goals
+                     SET exerciseId = ?, targetWeight = ?, targetDate = ?, status = 'active'
+                     WHERE goalId = ? AND userId = ?`;
+        const [result] = await db.query(
+            sql, [exerciseId, targetWeight, targetDate, req.params.id, userId]
+        );
+        if (result.affectedRows === 0) {
+            req.flash('error', 'Goal not found.');
             return res.redirect('/goals');
         }
+        req.flash('success', 'Goal updated.');
+        res.redirect('/goals');
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Could not update the goal.');
+        res.redirect('/goals');
+    }
+});
+
+// POST /goals/delete/:id - delete a goal
+router.post('/delete/:id', async (req, res) => {
+    const userId = req.session.user.userId;
+    try {
+        const [result] = await db.query(
+            'DELETE FROM goals WHERE goalId = ? AND userId = ?',
+            [req.params.id, userId]
+        );
         if (result.affectedRows === 0) {
             req.flash('error', 'Goal not found.');
             return res.redirect('/goals');
         }
         req.flash('success', 'Goal deleted.');
         res.redirect('/goals');
-    });
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Could not delete the goal.');
+        res.redirect('/goals');
+    }
 });
 
 module.exports = router;
