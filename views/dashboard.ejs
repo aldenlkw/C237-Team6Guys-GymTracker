@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= title %> | GymTrack</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <!-- Temporary authentication test page; replace with the full dashboard later. -->
+    <main class="auth-card">
+      <h1>Welcome, <%= user.username %></h1>
+      <p>You are logged in as <strong><%= user.role %></strong>.</p>
+      <form action="/logout" method="post">
+        <button class="primary" type="submit">Log out</button>
+      </form>
+    </main>
+  </body>
+</html>

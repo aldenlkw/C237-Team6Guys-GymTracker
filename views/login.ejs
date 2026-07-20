@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= title %> | GymTrack</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <nav class="site-navbar" aria-label="Guest navigation">
+      <a class="brand" href="/login">Gym<span class="brand-accent">Tracker</span></a>
+    </nav>
+
+    <main class="auth-wrapper">
+      <section class="auth-card" aria-labelledby="login-heading">
+        <h1 id="login-heading">Welcome Back</h1>
+        <p class="auth-subtitle">Log in to track your workouts and keep moving toward your goals.</p>
+
+        <% errors.forEach((message) => { %><div class="alert alert-error" role="alert"><%= message %></div><% }); %>
+        <% successes.forEach((message) => { %><div class="alert alert-success" role="status"><%= message %></div><% }); %>
+
+        <form action="/login" method="post">
+          <div class="form-group">
+            <label for="identifier">Username or email</label>
+            <input class="form-control" id="identifier" name="identifier" type="text" value="<%= oldInput.identifier || '' %>" autocomplete="username" required autofocus>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-wrapper">
+              <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
+              <button class="password-toggle" type="button" data-target="password" aria-label="Show password">Show</button>
+            </div>
+          </div>
+
+          <button class="primary-button" type="submit">Login</button>
+        </form>
+        <p class="auth-footer">New to GymTracker? <a href="/register">Create an account</a></p>
+      </section>
+    </main>
+    <footer class="site-footer">&copy; <%= new Date().getFullYear() %> GymTracker. Track progress. Build strength.</footer>
+    <script>
+      document.querySelectorAll('.password-toggle').forEach((button) => {
+        button.addEventListener('click', () => {
+          const input = document.getElementById(button.dataset.target);
+          const showing = input.type === 'text';
+          input.type = showing ? 'password' : 'text';
+          button.textContent = showing ? 'Show' : 'Hide';
+          button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        });
+      });
+    </script>
+  </body>
+</html>
