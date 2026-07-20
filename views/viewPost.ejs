@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title><%= post.title %></title>
+
+    <link rel="stylesheet" href="/forum.css">
+
+</head>
+
+<body>
+
+    <a href="/forum">← Back to Forum</a>
+
+    <hr>
+
+    <!-- ===========================
+         QUESTION
+    ============================ -->
+
+    <h1><%= post.title %></h1>
+
+    <p>
+
+        <strong>Posted by:</strong>
+
+        <%= post.username %>
+
+    </p>
+
+    <p>
+
+        <strong>Category:</strong>
+
+        <%= post.category %>
+
+    </p>
+
+    <p>
+
+        <strong>Date:</strong>
+
+        <%= post.created_at %>
+
+    </p>
+
+    <hr>
+
+    <p>
+
+        <%= post.question %>
+
+    </p>
+
+    <hr>
+
+    <!-- ===========================
+         EDIT / DELETE
+    ============================ -->
+
+    <% if(currentUser && currentUser.id === post.user_id){ %>
+
+        <a href="/forum/edit/<%= post.id %>">
+
+            <button>Edit Post</button>
+
+        </a>
+
+        <form
+            action="/forum/delete/<%= post.id %>"
+            method="POST"
+            style="display:inline;">
+
+            <button
+                type="submit"
+                onclick="return confirm('Delete this post?')">
+
+                Delete Post
+
+            </button>
+
+        </form>
+
+    <% } %>
+
+    <hr>
+
+    <!-- ===========================
+         REPLIES
+    ============================ -->
+
+    <h2>Replies</h2>
+
+    <% if(replies.length === 0){ %>
+
+        <p>
+
+            No replies yet.
+            Be the first to answer!
+
+        </p>
+
+    <% } %>
+
+    <% replies.forEach(reply=>{ %>
+
+        <div class="replyCard">
+
+            <p>
+
+                <strong><%= reply.username %></strong>
+
+            </p>
+
+            <p>
+
+                <%= reply.reply %>
+
+            </p>
+
+            <p>
+
+                <small>
+
+                    <%= reply.created_at %>
+
+                </small>
+
+            </p>
+
+            <hr>
+
+        </div>
+
+    <% }) %>
+
+    <!-- ===========================
+         ADD REPLY
+    ============================ -->
+
+    <h2>Post a Reply</h2>
+
+    <form
+        action="/forum/reply/<%= post.id %>"
+        method="POST">
+
+        <textarea
+
+            name="reply"
+
+            rows="5"
+
+            cols="70"
+
+            placeholder="Write your reply..."
+
+            required>
+
+        </textarea>
+
+        <br><br>
+
+        <button type="submit">
+
+            Submit Reply
+
+        </button>
+
+    </form>
+
+</body>
+
+</html>

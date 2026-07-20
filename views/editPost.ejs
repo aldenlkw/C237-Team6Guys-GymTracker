@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Edit Post</title>
+
+    <link rel="stylesheet" href="/forum.css">
+
+</head>
+
+<body>
+
+    <h1>Edit Your Forum Post</h1>
+
+    <hr>
+
+    <form action="/forum/edit/<%= post.id %>" method="POST">
+
+        <!-- ===========================
+             TITLE
+        ============================ -->
+
+        <label>
+
+            Question Title
+
+        </label>
+
+        <br>
+
+        <input
+            type="text"
+            name="title"
+            value="<%= post.title %>"
+            required>
+
+        <br><br>
+
+        <!-- ===========================
+             CATEGORY
+        ============================ -->
+
+        <label>
+
+            Category
+
+        </label>
+
+        <br>
+
+        <select name="category" required>
+
+            <option value="Strength"
+                <%= post.category === "Strength" ? "selected" : "" %>>
+                Strength
+            </option>
+
+            <option value="Nutrition"
+                <%= post.category === "Nutrition" ? "selected" : "" %>>
+                Nutrition
+            </option>
+
+            <option value="Weight Loss"
+                <%= post.category === "Weight Loss" ? "selected" : "" %>>
+                Weight Loss
+            </option>
+
+            <option value="Supplements"
+                <%= post.category === "Supplements" ? "selected" : "" %>>
+                Supplements
+            </option>
+
+            <option value="Injuries"
+                <%= post.category === "Injuries" ? "selected" : "" %>>
+                Injuries
+            </option>
+
+        </select>
+
+        <br><br>
+
+        <!-- ===========================
+             QUESTION
+        ============================ -->
+
+        <label>
+
+            Question
+
+        </label>
+
+        <br>
+
+        <textarea
+            name="question"
+            rows="8"
+            cols="70"
+            required><%= post.question %></textarea>
+
+        <br><br>
+
+        <button type="submit">
+
+            Save Changes
+
+        </button>
+
+        <a href="/forum/post/<%= post.id %>">
+
+            <button type="button">
+
+                Cancel
+
+            </button>
+
+        </a>
+
+    </form>
+
+</body>
+
+</html>
