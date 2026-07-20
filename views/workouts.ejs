@@ -129,8 +129,8 @@
           <tbody>
             <% workouts.forEach(workout => { %>
               <tr>
-                <td class="date-cell"><%= new Date(workout.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></td>
-                <td><strong><%= workout.exercise %></strong></td>
+                <td class="date-cell"><%= new Date(workout.workoutDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></td>
+                <td><strong><%= workout.exerciseName %></strong> <small class="text-muted">(<%= workout.muscleGroup %>)</small></td>
                 <td><%= workout.weight %></td>
                 <td><%= workout.reps %></td>
                 <td><%= workout.sets %></td>
