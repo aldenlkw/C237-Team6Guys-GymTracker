@@ -1,0 +1,93 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1>Admin Dashboard</h1>
+    <p class="form-sub">Welcome, <strong><%= user.username %></strong>. Manage GymTracker users and workouts.</p>
+  </div>
+</div>
+
+<section class="admin-section" aria-labelledby="users-heading">
+  <div class="admin-section-head">
+    <div>
+      <h2 id="users-heading">User Management</h2>
+      <p><%= users.length %> registered user<%= users.length === 1 ? '' : 's' %></p>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        <% if (users.length > 0) { %>
+          <% users.forEach((account) => { %>
+            <tr>
+              <td><%= account.userId %></td>
+              <td><strong><%= account.username %></strong><% if (account.userId === user.userId) { %> <span class="badge badge-active">You</span><% } %></td>
+              <td><%= account.email %></td>
+              <td>
+                <form class="admin-inline-form" action="/admin/users/<%= account.userId %>/role" method="post">
+                  <label class="sr-only" for="role-<%= account.userId %>">Role for <%= account.username %></label>
+                  <select id="role-<%= account.userId %>" name="role" <%= account.userId === user.userId ? 'disabled' : '' %>>
+                    <% roles.forEach((role) => { %><option value="<%= role %>" <%= account.role === role ? 'selected' : '' %>><%= role %></option><% }); %>
+                  </select>
+                  <button class="btn-sm btn-edit" type="submit" <%= account.userId === user.userId ? 'disabled' : '' %>>Update Role</button>
+                </form>
+              </td>
+              <td>
+                <form action="/admin/users/<%= account.userId %>/delete" method="post" onsubmit="return confirm('Delete <%= account.username %> and their workouts? This cannot be undone.');">
+                  <button class="btn-sm btn-delete" type="submit" <%= account.userId === user.userId ? 'disabled' : '' %>>Delete User</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        <% } else { %>
+          <tr><td colspan="5" class="admin-empty">No registered users found.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="admin-section" aria-labelledby="workouts-heading">
+  <div class="admin-section-head">
+    <div>
+      <h2 id="workouts-heading">Workout Management</h2>
+      <p><%= workouts.length %> workout record<%= workouts.length === 1 ? '' : 's' %></p>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Owner</th><th>Date</th><th>Exercise</th><th>Weight</th><th>Reps</th><th>Sets</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        <% if (workouts.length > 0) { %>
+          <% workouts.forEach((workout) => { %>
+            <tr>
+              <td><%= workout.workoutId %></td>
+              <td><strong><%= workout.username %></strong><br><span class="admin-muted"><%= workout.email %></span></td>
+              <td><%= new Date(workout.workoutDate).toLocaleDateString('en-GB') %></td>
+              <td><%= workout.exerciseName %> <span class="muscle-tag"><%= workout.muscleGroup %></span></td>
+              <td><%= workout.weight %> kg</td>
+              <td><%= workout.reps %></td>
+              <td><%= workout.sets %></td>
+              <td>
+                <form action="/admin/workouts/<%= workout.workoutId %>/delete" method="post" onsubmit="return confirm('Delete this workout record? This cannot be undone.');">
+                  <button class="btn-sm btn-delete" type="submit">Delete Workout</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        <% } else { %>
+          <tr><td colspan="8" class="admin-empty">No workout records found.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

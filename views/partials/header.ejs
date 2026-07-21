@@ -16,7 +16,7 @@
                 <a href="/goals">Goals</a>
                 <a href="/forum">Forum</a>
                 <% if (user.role === 'admin') { %>
-                    <a href="/admin/users" class="admin-link">Admin</a>
+                    <a href="/admin" class="admin-link">Admin</a>
                 <% } %>
                 <form action="/logout" method="POST" style="display:inline;">
     <button type="submit" class="btn-logout" style="background:none;border:1px solid var(--border-hi);cursor:pointer;font:inherit;">Logout</button>

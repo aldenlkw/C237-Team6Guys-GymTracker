@@ -1,12 +1,19 @@
 const mysql = require('mysql2');
 require('dotenv').config();
 
+const requiredVariables = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const missingVariables = requiredVariables.filter((name) => !process.env[name]);
+
+if (missingVariables.length > 0) {
+    throw new Error(`Missing database configuration: ${missingVariables.join(', ')}. Copy .env.example to .env and configure it.`);
+}
+
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'c237-eaint-mysql.mysql.database.azure.com',
-    user: process.env.DB_USER || 'c237_001',
-    password: process.env.DB_PASSWORD || 'c237001@2026!',
-    database: process.env.DB_NAME || 'c237_001_team6guys',
-    port: process.env.DB_PORT || 3306,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: Number(process.env.DB_PORT) || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,

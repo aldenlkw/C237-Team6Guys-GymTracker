@@ -1,0 +1,9 @@
+<%- include('partials/header') %>
+
+<section class="empty-state" role="alert">
+  <h1><%= title || 'Something went wrong' %></h1>
+  <p class="form-sub"><%= message || 'Please try again later.' %></p>
+  <a class="btn-sm btn-add" href="/dashboard">Return to Dashboard</a>
+</section>
+
+<%- include('partials/footer') %>

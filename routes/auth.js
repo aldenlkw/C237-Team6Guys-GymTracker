@@ -34,12 +34,19 @@ router.post('/register', isGuest, async (req, res) => {
 
   try {
     const [existingUsers] = await pool.execute(
-      'SELECT userId FROM users WHERE username = ? OR email = ? LIMIT 1',
+      'SELECT username, email FROM users WHERE username = ? OR email = ? LIMIT 1',
       [username, email]
     );
 
     if (existingUsers.length > 0) {
-      req.flash('error', 'That username or email is already registered.');
+      const duplicateUsername = existingUsers.some((user) => user.username.toLowerCase() === username.toLowerCase());
+      const duplicateEmail = existingUsers.some((user) => user.email.toLowerCase() === email);
+      const duplicateMessage = duplicateUsername && duplicateEmail
+        ? 'That username and email are already registered.'
+        : duplicateUsername
+          ? 'That username is already registered.'
+          : 'That email is already registered.';
+      req.flash('error', duplicateMessage);
       req.flash('oldInput', { username, email });
       return res.redirect('/register');
     }
@@ -57,7 +64,7 @@ router.post('/register', isGuest, async (req, res) => {
     req.flash(
       'error',
       error.code === 'ER_DUP_ENTRY'
-        ? 'That username or email is already registered.'
+        ? 'That username or email is already registered. Please choose different details.'
         : 'We could not create your account. Please try again later.'
     );
     req.flash('oldInput', { username, email });
